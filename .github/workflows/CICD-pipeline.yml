@@ -61,6 +61,8 @@ jobs:
       - name: Deploy to VM
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.VM_HOST }} << 'EOF'
+            sudo usermod -aG docker ubuntu
+
             echo "Pulling latest Docker images..."
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
