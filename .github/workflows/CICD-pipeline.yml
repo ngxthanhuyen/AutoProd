@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: 
+    branches:
       - main
-      
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -53,6 +53,9 @@ jobs:
           username: ${{ secrets.VM_USERNAME }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
+            echo "SSH Connection successful!"
+            whoami
+            pwd
             echo "Pulling latest Docker images..."
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
