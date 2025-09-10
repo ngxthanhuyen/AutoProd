@@ -2,68 +2,83 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-    # Étape 1: Checkout du code
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    # Étape 2: Build des images Docker
-    - name: Build Docker images
-      run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest ./springboot-application
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest ./flask-application
+      # --- Spring Boot ---
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-    # Étape 3: Login Docker Hub
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build Spring Boot JAR with Maven
+        run: |
+          cd springboot-application
+          chmod +x ./mvnw
+          ./mvnw clean package -DskipTests
 
-    # Étape 4: Push des images
-    - name: Push Docker images
-      run: |
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
+      # --- Docker ---
+      - name: Build Spring Boot Docker image
+        run: |
+          cd springboot-application
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest .
 
-    # Étape 5: Configuration SSH 
-    - name: Setup SSH Agent
-      uses: webfactory/ssh-agent@v0.8.0
-      with:
-        ssh-private-key: ${{ secrets.VM_SSH_KEY }}
+      - name: Build Flask Docker image
+        run: |
+          cd flask-application
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest .
 
-    # Étape 6: Déploiement sur la VM
-    - name: Deploy to VM
-      run: |
-        # Test de connexion
-        ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ubuntu@${{ secrets.VM_HOST }} "echo '✅ SSH Connection successful!'"
-        
-        # Pull et déploiement des containers
-        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.VM_HOST }} << 'EOF'
-          echo "Pulling latest Docker images..."
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
-          
-          echo "Restarting containers..."
-          docker stop springboot-app flask-application 2>/dev/null || true
-          docker rm springboot-app flask-application 2>/dev/null || true
-          
-          echo "Starting new containers..."
-          docker run -d --name springboot-app -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
-          docker run -d --name flask-app -p 5000:5000 ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
-          
-          echo "Deployment completed!"
-          echo "Running containers:"
-          docker ps
-        EOF
+      - name: Log in to Docker Hub using token
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    # Étape 7: Nettoyage 
-    - name: Cleanup
-      run: |
-        docker system prune -f || true
+      - name: Push Docker images to Docker Hub
+        run: |
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
+
+      # --- NOUVELLE MÉTHODE SSH ---
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.VM_SSH_KEY }}
+
+      - name: Test SSH Connection
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -v ubuntu@${{ secrets.VM_HOST }} "echo 'SSH Connection successful!'"
+
+      - name: Deploy to VM
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.VM_HOST }} << 'EOF'
+            echo "Pulling latest Docker images..."
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
+            
+            echo "Restarting containers..."
+            docker stop springboot-app flask-app 2>/dev/null || true
+            docker rm springboot-app flask-app 2>/dev/null || true
+            
+            echo "Starting new containers..."
+            docker run -d --name springboot-app -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
+            docker run -d --name flask-app -p 5000:5000 ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
+            
+            echo "Deployment completed!"
+            echo "Running containers:"
+            docker ps
+          EOF
+
+      # --- Nettoyage ---
+      - name: Cleanup
+        run: |
+          docker system prune -f || true
