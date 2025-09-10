@@ -21,11 +21,11 @@ jobs:
           distribution: 'temurin'
 
       - name: Make Maven Wrapper executable
-        run: chmod +x ./imageupload/mvnw
+        run: chmod +x ./mvnw
 
       - name: Build Spring Boot JAR
         run: ./mvnw clean package -DskipTests
-        working-directory: ./imageupload
+        working-directory: ./springboot-application
 
       # --- Docker ---
       - name: Build Spring Boot Docker image
