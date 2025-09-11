@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   springboot-application:
+    container_name: springboot-application
     build:
       context: ./springboot-application
       dockerfile: Dockerfile
@@ -13,6 +14,7 @@ services:
       - mongo
 
   flask-application:
+    container_name: flask-application
     build:
       context: ./flask-application
       dockerfile: Dockerfile
