@@ -1,6 +1,6 @@
 import os 
 class Config:
-    MONGO_URI = os.environ.get("MONGO_URI", "mongodb://127.0.0.1:27017/image_db")
+    MONGO_URI = os.environ.get("MONGO_URI")
 
     # Configuration pour hMailServer local
     MAIL_SERVER = 'localhost'             # hMailServer local
@@ -10,3 +10,4 @@ class Config:
     MAIL_USERNAME = 'ed@monmail.com'    
     MAIL_PASSWORD = 'changeme'       
     MAIL_DEFAULT_SENDER = 'ed@monmail.com'
+
