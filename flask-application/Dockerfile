@@ -1,18 +1,13 @@
-# Image Python 3.11
 FROM python:3.11-slim
 
-# Dossier de travail
 WORKDIR /app
 
-# Copie des fichiers requirements
 COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copie le reste du code
 COPY . .
 
-# Expose le port de Flask
 EXPOSE 5000
 
-# Lancement de l'application Flask
-CMD ["python", "app.py"]
+# FORCER l'utilisation de host=0.0.0.0
+CMD ["python", "-u", "app.py", "--host=0.0.0.0", "--port=5000"]
