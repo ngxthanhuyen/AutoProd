@@ -48,6 +48,43 @@ jobs:
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
 
+      # --- NOUVELLE MÉTHODE SSH ---
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.VM_SSH_KEY }}
+
+      - name: Test SSH Connection
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -v ubuntu@${{ secrets.VM_HOST }} "echo 'SSH Connection successful!'"
+
+      - name: Deploy to VM
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.VM_HOST }} << 'EOF'
+            sudo usermod -aG docker ubuntu
+
+            echo "Pulling latest Docker images..."
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
+            
+            echo "Restarting containers..."
+            docker stop springboot-app flask-app 2>/dev/null || true
+            docker rm springboot-app flask-app 2>/dev/null || true
+            
+            echo "Starting new containers..."
+            docker run -d --name springboot-app -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
+            docker run -d --name flask-app -p 5000:5000 ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
+            
+            echo "Deployment completed!"
+            echo "Running containers:"
+            docker ps
+          EOF
+
+      # --- Nettoyage ---
+      - name: Cleanup
+        run: |
+          docker system prune -f || true
+
       # --- Connecter via SSH ---
       - name: Setup SSH Agent
         uses: webfactory/ssh-agent@v0.8.0

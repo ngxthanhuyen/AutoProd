@@ -1,3 +1,7 @@
 flask
 pymongo
+<<<<<<< HEAD
 Flask-Mail
+=======
+Flask-Mail
+>>>>>>> ba270efdc4255a93a95a698619b45983ab0160a0

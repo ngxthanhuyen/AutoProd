@@ -7,6 +7,14 @@ class Config:
     MAIL_PORT = 25                        # ou 587 si configuré
     MAIL_USE_TLS = False
     MAIL_USE_SSL = False
+<<<<<<< HEAD
     MAIL_USERNAME = 'nthanhuyen1411@gmail.com'    
     MAIL_PASSWORD = 'changeme'       
     MAIL_DEFAULT_SENDER = 'nthanhuyen1411@gmail.com'
+=======
+    MAIL_USERNAME = 'ed@monmail.com'    
+    MAIL_PASSWORD = 'changeme'       
+    MAIL_DEFAULT_SENDER = 'ed@monmail.com'
+
+
+>>>>>>> ba270efdc4255a93a95a698619b45983ab0160a0
