@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   springboot-application:
+    container_name: springboot-application
     build:
       context: ./springboot-application
       dockerfile: Dockerfile
@@ -13,14 +14,17 @@ services:
       - mongo
 
   flask-application:
+    container_name: flask-application
     build:
       context: ./flask-application
       dockerfile: Dockerfile
     ports:
       - "5000:5000"
+    environment:
+      MONGO_URI: "mongodb://mongo:27017/image_db"
     depends_on:
       - mongo
-
+  
   mongo:
     image: mongo:6
     container_name: mongo
