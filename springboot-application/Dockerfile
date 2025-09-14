@@ -4,7 +4,7 @@ FROM openjdk:17-jdk-slim
 # Crée le dossier de travail
 WORKDIR /app
 
-# Copie le fichier JAR (après compilation)
+# Copie le fichier JAR 
 COPY target/imageupload-0.0.1-SNAPSHOT.jar app.jar
 
 # Expose le port de l'application
