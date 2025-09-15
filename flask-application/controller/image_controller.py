@@ -16,7 +16,7 @@ def init_routes(app, mongo, mail):
         image_id = save_image(file, mongo)
 
         # Création de l'e-mail à envoyer après upload
-        msg = create_email("test@localmail.com", "Image Upload", f"Image ID: {image_id}")
+        msg = create_email("nthanhuyen1411@gmail.com", "Image Upload", f"Image ID: {image_id}")
 
         try:
             # Tentative d'envoi de l'e-mail via Flask-Mail
