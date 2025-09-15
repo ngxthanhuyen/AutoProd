@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <!-- Titre de la page affiché dans l’onglet du navigateur -->
+    <title>Uploader une image</title>
+</head>
+<body>
+    <!-- Titre principal affiché sur la page -->
+    <h1>Uploader une image 📤</h1>
+     <!-- Formulaire HTML pour envoyer une image avec la méthode POST.-->
+    <form action="/api/images/upload" method="post" enctype="multipart/form-data">
+         <!-- Étiquette liée au champ input avec une petite mise en forme -->
+        <label for="file">Sélectionnez une image :</label><br><br>
+        <!-- Champ permettant de sélectionner un fichier image -->
+        <input type="file" name="file" id="file" accept="image/*" required><br><br>
+        <!-- Bouton pour soumettre le formulaire -->
+        <button type="submit">Envoyer</button>
+    </form>
+</body>
+</html>
