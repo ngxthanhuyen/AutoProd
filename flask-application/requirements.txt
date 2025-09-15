@@ -1,3 +1,4 @@
 flask
-pymongo
-Flask-Mail
+flask-mail
+flask-pymongo
+python-dotenv
