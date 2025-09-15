@@ -1,54 +1,21 @@
-from flask import Flask, request, jsonify, send_file
-from config import Config
-from services.image_service import ImageService
-from services.email_service import EmailService
-from io import BytesIO
+from flask import Flask, render_template
+from config import ConfigSingleton
+from controller.image_controller import init_routes
 
-app = Flask(__name__)
-app.config.from_object(Config)
+# Récupération des services configurés via le Singleton
+config = ConfigSingleton.instance()
+app = config["app"]
+mongo = config["mongo"]
+mail = config["mail"]
 
-# Initialiser services
-image_service = ImageService(app.config['MONGO_URI'])
-email_service = EmailService(app)
+# Définition d'une route d'accueil pour vérifier que le service tourne
+@app.route('/')
+def home():
+    return render_template('upload.html')
 
-@app.route('/api/images/upload', methods=['POST'])
-def upload_image():
-    # Vérifie si le fichier est présent dans la requête
-    if 'file' not in request.files or request.files['file'].filename == '':
-        # Même en cas d'erreur, on renvoie un message de réussite
-        return jsonify({
-            "message": "Image uploaded successfully", 
-            "image_id": None,
-            "type": "Success"
-        }), 201
+# Enregistrement des routes spécifiques aux images
+init_routes(app, mongo, mail)
 
-    file = request.files['file']
-    
-    # Appel du service d'upload, ignore les erreurs
-    image_id = None
-    try:
-        image_id = image_service.upload_image(file)
-    except:
-        pass  # On ignore toute erreur
-
-    return jsonify({
-        "message": "Image uploaded successfully", 
-        "image_id": image_id,
-        "type": "Success"
-    }), 201
-
-
-@app.route('/api/images/<image_id>', methods=['GET'])
-def get_image(image_id):
-    image_data = image_service.get_image(image_id)
-    if not image_data:
-        return jsonify({"error": "Image not found"}), 404
-    
-    return send_file(
-        BytesIO(image_data['image_data']),
-        mimetype=image_data['content_type'],
-        download_name=image_data['name']
-    )
-
+# Lancement de l'application en mode debug
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)
