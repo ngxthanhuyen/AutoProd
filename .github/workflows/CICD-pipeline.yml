@@ -60,26 +60,25 @@ jobs:
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -v ubuntu@${{ secrets.VM_HOST }} "echo 'SSH Connection successful!'"
 
       # --- Déploiement ---
-      - name: Deploy to VM
+      - name: Deploy with docker-compose to VM
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.VM_HOST }} << 'EOF'
-            sudo usermod -aG docker ubuntu
-
-            echo "Pulling latest Docker images..."
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
-            
-            echo "Restarting containers..."
-            docker stop springboot-app flask-app 2>/dev/null || true
-            docker rm springboot-app flask-app 2>/dev/null || true
-            
-            echo "Starting new containers..."
-            docker run -d --name springboot-app -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
-            docker run -d --name flask-app -p 5001:5001 ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
-            
-            echo "Deployment completed!"
-            echo "Running containers:"
+            cd /home/ubuntu
+      
+            # S'assurer que docker-compose est installé
+            sudo curl -L "https://github.com/docker/compose/releases/download/v2.22.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+            docker-compose --version
+      
+            # Pull des dernières images depuis Docker Hub
+            docker-compose pull
+      
+            # Démarrer tous les services en arrière-plan
+            docker-compose up -d
+      
+            # Vérifier l'état des conteneurs
             docker ps
           EOF
+
 
      
