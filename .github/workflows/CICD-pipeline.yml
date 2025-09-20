@@ -52,7 +52,7 @@ jobs:
       # 6️⃣ Copier docker-compose.yml vers la VM
       - name: Copy docker-compose.yml to VM
         run: |
-          scp -o StrictHostKeyChecking=no docker-compose.yml ubuntu@${{ secrets.VM_HOST }}:~/docker-compose.yml
+          scp -o StrictHostKeyChecking=no AutoProd/docker-compose.yml ubuntu@${{ secrets.VM_HOST }}:~/docker-compose.yml
 
       # 7️⃣ Déploiement sur la VM
       - name: Deploy on VM
