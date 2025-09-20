@@ -6,75 +6,100 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout le code
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Spring Boot - setup JDK et build
+      # --- Spring Boot ---
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build Spring Boot JAR
+      - name: Build Spring Boot JAR with Maven
         run: |
           cd springboot-application
           chmod +x ./mvnw
           ./mvnw clean package -DskipTests
 
-      # 3️⃣ Docker - build des images
-      - name: Build Docker images
+      # --- Docker ---
+      - name: Build Spring Boot Docker image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest ./springboot-application
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest ./flask-application
+          cd springboot-application
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest .
 
-      # 4️⃣ Docker Hub login et push
-      - name: Login to Docker Hub
+      - name: Build Flask Docker image
+        run: |
+          cd flask-application
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest .
+
+      - name: Log in to Docker Hub using token
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Push Docker images
+      - name: Push Docker images to Docker Hub
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
 
-      # 5️⃣ Debug - lister fichiers pour vérifier docker-compose.yml
-      - name: List repository files
-        run: ls -R
+      # --- Connecter via SSH ---
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.VM_SSH_KEY }}
 
-      # 6️⃣ Copier docker-compose.yml vers la VM
-      - name: Copy docker-compose.yml to VM
+      # --- Tester la connexion SSH avant le déploiement ---
+      - name: Test SSH Connection
         run: |
-          scp -o StrictHostKeyChecking=no AutoProd/docker-compose.yml ubuntu@${{ secrets.VM_HOST }}:~/docker-compose.yml
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -v ubuntu@${{ secrets.VM_HOST }} "echo 'SSH Connection successful!'"
 
-      # 7️⃣ Déploiement sur la VM
-      - name: Deploy on VM
+      # --- Déploiement ---
+      - name: Deploy to VM
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.VM_HOST }} << 'EOF'
-            # Ajouter l'utilisateur ubuntu au groupe docker
-            sudo usermod -aG docker ubuntu || true
-
-            # Vérifier si docker-compose est installé
-            if ! command -v docker-compose &> /dev/null
-            then
-              echo "docker-compose non trouvé, installation..."
-              sudo apt update
-              sudo apt install -y docker-compose
-            fi
-
-            # Aller dans le home et lancer docker-compose
-            cd ~
-            docker-compose down || true
-            docker-compose pull
-            docker-compose up -d --remove-orphans
-
-            echo "Déploiement terminé !"
+            # Ajouter l'utilisateur au groupe docker
+            sudo usermod -aG docker ubuntu
+      
+            echo "Stopping old containers if exist..."
+            docker stop springboot-app flask-app mongo 2>/dev/null || true
+            docker rm springboot-app flask-app mongo 2>/dev/null || true
+      
+            echo "Starting MongoDB container..."
+            docker run -d \
+              --name mongo \
+              -p 27017:27017 \
+              -v mongo-data:/data/db \
+              mongo:6
+      
+            echo "Pulling latest Docker images for apps..."
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
+      
+            echo "Starting Spring Boot container..."
+            docker run -d \
+              --name springboot-app \
+              -p 8080:8080 \
+              -e SPRING_DATA_MONGODB_URI="mongodb://mongo:27017/testdb" \
+              --link mongo:mongo \
+              ${{ secrets.DOCKERHUB_USERNAME }}/springboot-application:latest
+      
+            echo "Starting Flask container..."
+            docker run -d \
+              --name flask-app \
+              -p 5001:5001 \
+              -e MONGO_URI="mongodb://mongo:27017/image_db" \
+              --link mongo:mongo \
+              ${{ secrets.DOCKERHUB_USERNAME }}/flask-application:latest
+      
+            echo "Deployment completed! Running containers:"
             docker ps
+            docker volume ls
           EOF
+      
+           
