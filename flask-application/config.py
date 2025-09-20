@@ -23,7 +23,8 @@ class ConfigSingleton:
             app = Flask(__name__)
             # Configuration MongoDB
             mongo_host = os.getenv('MONGO_HOST', 'localhost')
-            app.config['MONGO_URI'] = f"mongodb://{mongo_host}:27017/imageDB"
+            mongo_port = os.getenv('MONGO_PORT', '27017')
+            app.config['MONGO_URI'] = f"mongodb://{mongo_host}:27017/image_db"
             # Configuration SMTP pour l'envoi d'e-mails
             app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
             app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT'))
